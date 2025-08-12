@@ -1,5 +1,6 @@
 import React, { useMemo, useState } from 'react';
 import { ProjectData } from '../App';
+import { ResponsiveContainer, LineChart, Line, CartesianGrid, XAxis, YAxis, Tooltip } from 'recharts';
 
 interface MetricsComparisonProps {
   data: ProjectData[];
@@ -32,6 +33,10 @@ const MetricsComparison: React.FC<MetricsComparisonProps> = ({ data, type, onBac
     label: 'Total Projects (Descending)'
   });
   const [showSortOptions, setShowSortOptions] = useState(false);
+
+  // Modal state for fullscreen timeline
+  const [timelineName, setTimelineName] = useState<string | null>(null);
+  const [seriesByName, setSeriesByName] = useState<Record<string, string>>({});
 
   const sortOptions: SortOption[] = [
     { field: 'totalProjects', direction: 'desc', label: 'Total Projects (Descending)' },
@@ -114,38 +119,10 @@ const MetricsComparison: React.FC<MetricsComparisonProps> = ({ data, type, onBac
     });
   }, [data, type, sortConfig]);
 
-  const renderDistribution = (distribution: Record<string, number>, total: number) => {
-    return Object.entries(distribution)
-      .sort((a, b) => parseInt(b[1].toString()) - parseInt(a[1].toString()))
-      .map(([key, value]) => {
-        const percentage = total > 0 ? ((value / total) * 100).toFixed(1) : '0';
-        return (
-          <div key={key} className="distribution-item">
-            <span className="distribution-key">{key}:</span>
-            <span className="distribution-value">{value} ({percentage}%)</span>
-          </div>
-        );
-      });
-  };
-
-  // Find highest values for each metric
-  const findHighestValues = () => {
-    const highestValues = {
-      totalProjects: Math.max(...metrics.map(m => m.totalProjects)),
-      uniqueClients: Math.max(...metrics.map(m => m.uniqueClients)),
-      uniqueExperts: Math.max(...metrics.map(m => m.uniqueExperts)),
-      completedProjects: Math.max(...metrics.map(m => m.completedProjects)),
-      completedRate: Math.max(...metrics.map(m => parseFloat(m.completedRate)))
-    };
-    return highestValues;
-  };
-
-  const highestValues = findHighestValues();
-
   const renderDistributionNarrow = (distribution: Record<string, number>, total: number) => {
     return Object.entries(distribution)
       .sort((a, b) => parseInt(b[1].toString()) - parseInt(a[1].toString()))
-      .slice(0, 3) // Show only top 3
+      .slice(0, 3)
       .map(([key, value]) => {
         const percentage = total > 0 ? ((value / total) * 100).toFixed(1) : '0';
         return (
@@ -157,7 +134,112 @@ const MetricsComparison: React.FC<MetricsComparisonProps> = ({ data, type, onBac
       });
   };
 
+  const normalizeDate = (value?: string) => {
+    if (!value) return null;
+    const d = new Date(value);
+    if (Number.isNaN(d.getTime())) return null;
+    return d.toISOString().slice(0, 10);
+  };
+
+  const buildTimeSeries = (name: string, seriesKey: string) => {
+    if (!type) return [];
+    const key = type === 'managers' ? 'Project Manager' : 'Event Executor Associate';
+    const items = data.filter(it => it[key] === name);
+
+    const dateToValue: Record<string, number> = {};
+
+    if (seriesKey === 'projects') {
+      const dateToProjects: Record<string, Set<string>> = {};
+      items.forEach(it => {
+        const date = normalizeDate(it['Project Start Date']);
+        const projectName = it['Project Name'];
+        if (!date || !projectName) return;
+        if (!dateToProjects[date]) dateToProjects[date] = new Set<string>();
+        dateToProjects[date].add(projectName);
+      });
+      Object.entries(dateToProjects).forEach(([date, set]) => {
+        dateToValue[date] = set.size;
+      });
+    } else {
+      items.forEach(it => {
+        const date = normalizeDate(it['Event Date']);
+        if (!date) return;
+        const interaction = (it['Expert Final Interaction State'] || '').toLowerCase();
+        const eventType = (it['Event Type'] || '').toLowerCase();
+
+        const match = (
+          (seriesKey === 'completed' && (interaction.includes('completed') || eventType.includes('completed'))) ||
+          (seriesKey === 'indexed' && (interaction.includes('indexed') || eventType.includes('indexed'))) ||
+          (seriesKey === 'presented' && (interaction.includes('presented') || eventType.includes('presented'))) ||
+          (seriesKey === 'events')
+        );
+        if (!match) return;
+        dateToValue[date] = (dateToValue[date] || 0) + 1;
+      });
+    }
+
+    const series = Object.entries(dateToValue)
+      .map(([date, value]) => ({ date, value }))
+      .sort((a, b) => a.date.localeCompare(b.date));
+    return series;
+  };
+
+  const seriesOptions = [
+    { key: 'completed', label: 'Completed' },
+    { key: 'indexed', label: 'Indexed' },
+    { key: 'presented', label: 'Presented' },
+    { key: 'events', label: 'All Events' },
+    { key: 'projects', label: 'Projects' }
+  ];
+
   if (!type) return null;
+
+  const renderTimelineModal = () => {
+    if (!timelineName) return null;
+    const selectedSeries = seriesByName[timelineName] || 'completed';
+    const timeSeries = buildTimeSeries(timelineName, selectedSeries);
+    return (
+      <div className="timeline-overlay">
+        <div className="timeline-modal">
+          <div className="timeline-header">
+            <h3 className="timeline-title">{timelineName} • {seriesOptions.find(s => s.key === selectedSeries)?.label}</h3>
+            <div className="timeline-controls">
+              {seriesOptions.map(opt => (
+                <button
+                  key={opt.key}
+                  className={`sort-button ${selectedSeries === opt.key ? 'active' : ''}`}
+                  onClick={() => setSeriesByName(prev => ({ ...prev, [timelineName]: opt.key }))}
+                >
+                  {opt.label}
+                </button>
+              ))}
+              <button className="close-button" onClick={() => setTimelineName(null)}>×</button>
+            </div>
+          </div>
+          <div className="timeline-body">
+            <ResponsiveContainer width="100%" height="100%">
+              <LineChart data={timeSeries} margin={{ left: 20, right: 30, top: 20, bottom: 20 }}>
+                <CartesianGrid strokeDasharray="3 3" />
+                <XAxis dataKey="date" tick={{ fontSize: 12 }} />
+                <YAxis />
+                <Tooltip labelFormatter={(label) => `Date: ${label}`} formatter={(v: any) => [v, 'Count']} />
+                <Line type="monotone" dataKey="value" stroke="#3498db" strokeWidth={2} dot={false} />
+              </LineChart>
+            </ResponsiveContainer>
+          </div>
+        </div>
+      </div>
+    );
+  };
+
+  // Highest values for KPIs
+  const highestValues = {
+    totalProjects: Math.max(...metrics.map(m => m.totalProjects)),
+    uniqueClients: Math.max(...metrics.map(m => m.uniqueClients)),
+    uniqueExperts: Math.max(...metrics.map(m => m.uniqueExperts)),
+    completedProjects: Math.max(...metrics.map(m => m.completedProjects)),
+    completedRate: Math.max(...metrics.map(m => parseFloat(m.completedRate)))
+  };
 
   return (
     <div className="metrics-comparison">
@@ -195,66 +277,79 @@ const MetricsComparison: React.FC<MetricsComparisonProps> = ({ data, type, onBac
       </div>
 
       <div className="metrics-grid-narrow">
-        {metrics.map((metric, index) => (
-          <div key={metric.name} className="metric-column-narrow">
-            <h3 className="metric-name-narrow">{metric.name}</h3>
-            
-            <div className="metric-kpis-narrow">
-              <div className="metric-kpi-narrow">
-                <span className="kpi-label-narrow">Total:</span>
-                <span className={`kpi-value-narrow ${metric.totalProjects === highestValues.totalProjects ? 'highest-value' : ''}`}>
-                  {metric.totalProjects}
-                </span>
-              </div>
+        {metrics.map((metric) => {
+          return (
+            <div key={metric.name} className="metric-column-narrow">
+              <h3 className="metric-name-narrow">{metric.name}</h3>
               
-              <div className="metric-kpi-narrow">
-                <span className="kpi-label-narrow">Clients:</span>
-                <span className={`kpi-value-narrow ${metric.uniqueClients === highestValues.uniqueClients ? 'highest-value' : ''}`}>
-                  {metric.uniqueClients}
-                </span>
+              <div className="metric-kpis-narrow">
+                <div className="metric-kpi-narrow">
+                  <span className="kpi-label-narrow">Total:</span>
+                  <span className={`kpi-value-narrow ${metric.totalProjects === highestValues.totalProjects ? 'highest-value' : ''}`}>
+                    {metric.totalProjects}
+                  </span>
+                </div>
+                
+                <div className="metric-kpi-narrow">
+                  <span className="kpi-label-narrow">Clients:</span>
+                  <span className={`kpi-value-narrow ${metric.uniqueClients === highestValues.uniqueClients ? 'highest-value' : ''}`}>
+                    {metric.uniqueClients}
+                  </span>
+                </div>
+                
+                <div className="metric-kpi-narrow">
+                  <span className="kpi-label-narrow">Experts:</span>
+                  <span className={`kpi-value-narrow ${metric.uniqueExperts === highestValues.uniqueExperts ? 'highest-value' : ''}`}>
+                    {metric.uniqueExperts}
+                  </span>
+                </div>
+                
+                <div className="metric-kpi-narrow">
+                  <span className="kpi-label-narrow">Completed:</span>
+                  <span className={`kpi-value-narrow ${metric.completedProjects === highestValues.completedProjects ? 'highest-value' : ''}`}>
+                    {metric.completedProjects}
+                  </span>
+                </div>
+                
+                <div className="metric-kpi-narrow">
+                  <span className="kpi-label-narrow">Rate:</span>
+                  <span className={`kpi-value-narrow ${parseFloat(metric.completedRate) === highestValues.completedRate ? 'highest-value' : ''}`}>
+                    {metric.completedRate}%
+                  </span>
+                </div>
               </div>
-              
-              <div className="metric-kpi-narrow">
-                <span className="kpi-label-narrow">Experts:</span>
-                <span className={`kpi-value-narrow ${metric.uniqueExperts === highestValues.uniqueExperts ? 'highest-value' : ''}`}>
-                  {metric.uniqueExperts}
-                </span>
+
+              <div className="metric-distributions-narrow">
+                <div className="distribution-section-narrow">
+                  <h4 className="distribution-title-narrow">Followup</h4>
+                  {renderDistributionNarrow(metric.followupDistribution, metric.totalProjects)}
+                </div>
+
+                <div className="distribution-section-narrow">
+                  <h4 className="distribution-title-narrow">Event Type</h4>
+                  {renderDistributionNarrow(metric.eventTypeDistribution, metric.totalProjects)}
+                </div>
+
+                <div className="distribution-section-narrow">
+                  <h4 className="distribution-title-narrow">Geographic</h4>
+                  {renderDistributionNarrow(metric.geoscopeDistribution, metric.totalProjects)}
+                </div>
               </div>
-              
-              <div className="metric-kpi-narrow">
-                <span className="kpi-label-narrow">Completed:</span>
-                <span className={`kpi-value-narrow ${metric.completedProjects === highestValues.completedProjects ? 'highest-value' : ''}`}>
-                  {metric.completedProjects}
-                </span>
-              </div>
-              
-              <div className="metric-kpi-narrow">
-                <span className="kpi-label-narrow">Rate:</span>
-                <span className={`kpi-value-narrow ${parseFloat(metric.completedRate) === highestValues.completedRate ? 'highest-value' : ''}`}>
-                  {metric.completedRate}%
-                </span>
+
+              <div style={{ marginTop: 10, display: 'flex', gap: 8, alignItems: 'center' }}>
+                <button
+                  className="sort-button"
+                  onClick={() => setTimelineName(metric.name)}
+                >
+                  Show Timeline
+                </button>
               </div>
             </div>
-
-            <div className="metric-distributions-narrow">
-              <div className="distribution-section-narrow">
-                <h4 className="distribution-title-narrow">Followup</h4>
-                {renderDistributionNarrow(metric.followupDistribution, metric.totalProjects)}
-              </div>
-
-              <div className="distribution-section-narrow">
-                <h4 className="distribution-title-narrow">Event Type</h4>
-                {renderDistributionNarrow(metric.eventTypeDistribution, metric.totalProjects)}
-              </div>
-
-              <div className="distribution-section-narrow">
-                <h4 className="distribution-title-narrow">Geographic</h4>
-                {renderDistributionNarrow(metric.geoscopeDistribution, metric.totalProjects)}
-              </div>
-            </div>
-          </div>
-        ))}
+          );
+        })}
       </div>
+
+      {renderTimelineModal()}
     </div>
   );
 };

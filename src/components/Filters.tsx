@@ -8,6 +8,7 @@ interface FiltersProps {
     industry: string;
     eventType: string;
     eventExecutorAssociate: string;
+    expertFinalTermsState: string;
     dateRange: { start: string; end: string };
   };
   filterOptions: {
@@ -17,6 +18,7 @@ interface FiltersProps {
     industries: string[];
     eventTypes: string[];
     eventExecutorAssociates: string[];
+    expertFinalTermsStates: string[];
   };
   onFilterChange: (filterType: string, value: string | { start: string; end: string }) => void;
   onCompareClick: () => void;
@@ -35,6 +37,7 @@ const Filters: React.FC<FiltersProps> = ({ filters, filterOptions, onFilterChang
     industry: '',
     eventType: '',
     eventExecutorAssociate: '',
+    expertFinalTermsState: '',
     dateRange: { start: '', end: '' }
   });
   const [secondCondition, setSecondCondition] = useState({
@@ -44,6 +47,7 @@ const Filters: React.FC<FiltersProps> = ({ filters, filterOptions, onFilterChang
     industry: '',
     eventType: '',
     eventExecutorAssociate: '',
+    expertFinalTermsState: '',
     dateRange: { start: '', end: '' }
   });
 
@@ -173,6 +177,22 @@ const Filters: React.FC<FiltersProps> = ({ filters, filterOptions, onFilterChang
             {filterOptions.eventExecutorAssociates.map((associate) => (
               <option key={associate} value={associate}>
                 {associate}
+              </option>
+            ))}
+          </select>
+        </div>
+
+        <div className="filter-group">
+          <label htmlFor="expertFinalTermsState">Expert Final Terms State</label>
+          <select
+            id="expertFinalTermsState"
+            value={filters.expertFinalTermsState}
+            onChange={(e) => onFilterChange('expertFinalTermsState', e.target.value)}
+          >
+            <option value="">All Terms States</option>
+            {filterOptions.expertFinalTermsStates.map((state) => (
+              <option key={state} value={state}>
+                {state}
               </option>
             ))}
           </select>
@@ -333,6 +353,21 @@ const Filters: React.FC<FiltersProps> = ({ filters, filterOptions, onFilterChang
                     {filterOptions.eventExecutorAssociates.map((associate) => (
                       <option key={associate} value={associate}>
                         {associate}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div className="filter-group">
+                  <label>Expert Final Terms State</label>
+                  <select
+                    value={compareStep === 1 ? firstCondition.expertFinalTermsState : secondCondition.expertFinalTermsState}
+                    onChange={(e) => handleConditionChange(compareStep, 'expertFinalTermsState', e.target.value)}
+                  >
+                    <option value="">All Terms States</option>
+                    {filterOptions.expertFinalTermsStates.map((state) => (
+                      <option key={state} value={state}>
+                        {state}
                       </option>
                     ))}
                   </select>

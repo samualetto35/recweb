@@ -7,6 +7,7 @@ import GeoActivityChart from './charts/GeoActivityChart';
 import SummaryBoxes from './SummaryBoxes';
 import Filters from './Filters';
 import MetricsComparison from './MetricsComparison';
+import GlobalTimeline from './GlobalTimeline';
 
 interface DashboardProps {
   data: ProjectData[];
@@ -20,6 +21,7 @@ const Dashboard: React.FC<DashboardProps> = ({ data }) => {
     industry: '',
     eventType: '',
     eventExecutorAssociate: '',
+    expertFinalTermsState: '',
     dateRange: { start: '', end: '' }
   });
 
@@ -31,6 +33,7 @@ const Dashboard: React.FC<DashboardProps> = ({ data }) => {
     const industries = Array.from(new Set(data.map(item => item['Project Industry']))).filter(Boolean);
     const eventTypes = Array.from(new Set(data.map(item => item['Event Type']))).filter(Boolean);
     const eventExecutorAssociates = Array.from(new Set(data.map(item => item['Event Executor Associate']))).filter(Boolean);
+    const expertFinalTermsStates = Array.from(new Set(data.map(item => item['Expert Final Terms State']))).filter(Boolean);
 
     return {
       projectManagers,
@@ -38,7 +41,8 @@ const Dashboard: React.FC<DashboardProps> = ({ data }) => {
       geoscopes,
       industries,
       eventTypes,
-      eventExecutorAssociates
+      eventExecutorAssociates,
+      expertFinalTermsStates
     };
   }, [data]);
 
@@ -51,6 +55,7 @@ const Dashboard: React.FC<DashboardProps> = ({ data }) => {
       if (filters.industry && item['Project Industry'] !== filters.industry) return false;
       if (filters.eventType && item['Event Type'] !== filters.eventType) return false;
       if (filters.eventExecutorAssociate && item['Event Executor Associate'] !== filters.eventExecutorAssociate) return false;
+      if (filters.expertFinalTermsState && item['Expert Final Terms State'] !== filters.expertFinalTermsState) return false;
       
       if (filters.dateRange.start || filters.dateRange.end) {
         const itemDate = new Date(item['Project Start Date']);
@@ -75,7 +80,6 @@ const Dashboard: React.FC<DashboardProps> = ({ data }) => {
   const [metricsComparisonType, setMetricsComparisonType] = useState<'managers' | 'associates' | null>(null);
 
   const handleCompareClick = () => {
-    // This will be handled by the Filters component
     console.log('Compare button clicked');
   };
 
@@ -92,7 +96,6 @@ const Dashboard: React.FC<DashboardProps> = ({ data }) => {
   };
 
   const handleComparisonComplete = (firstCondition: any, secondCondition: any) => {
-    // Filter data for first condition
     const firstData = data.filter(item => {
       if (firstCondition.projectManager && item['Project Manager'] !== firstCondition.projectManager) return false;
       if (firstCondition.clientName && item['Client Name'] !== firstCondition.clientName) return false;
@@ -110,7 +113,6 @@ const Dashboard: React.FC<DashboardProps> = ({ data }) => {
       return true;
     });
 
-    // Filter data for second condition
     const secondData = data.filter(item => {
       if (secondCondition.projectManager && item['Project Manager'] !== secondCondition.projectManager) return false;
       if (secondCondition.clientName && item['Client Name'] !== secondCondition.clientName) return false;
@@ -152,6 +154,7 @@ const Dashboard: React.FC<DashboardProps> = ({ data }) => {
 
       {!isComparing && !metricsComparisonType ? (
         <>
+          <GlobalTimeline data={filteredData} />
           <SummaryBoxes data={filteredData} />
 
           <div className="charts-grid">
