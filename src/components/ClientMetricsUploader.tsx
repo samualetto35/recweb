@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useMemo } from 'react';
 import Papa from 'papaparse';
 import { ClientMetricsData } from '../App';
 
@@ -11,12 +11,12 @@ const ClientMetricsUploader: React.FC<ClientMetricsUploaderProps> = ({ onDataLoa
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const requiredColumns = [
+  const requiredColumns = useMemo(() => [
     'Client Name',
     'Reticula Completed Calls',
     'Inex One Expected Calls',
     'Inex One Completed Calls'
-  ];
+  ], []);
 
   const processCSV = useCallback((file: File) => {
     setIsLoading(true);
