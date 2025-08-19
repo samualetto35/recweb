@@ -26,9 +26,23 @@ const Dashboard: React.FC<DashboardProps> = ({ data }) => {
     dateRange: { start: '', end: '' }
   });
 
+  const normalizeProjectType = (value: string): string => {
+    if (!value) return '';
+    const normalized = value.toString().toLowerCase().replace(/\./g, ' ').replace(/\s+/g, ' ').trim();
+    if (normalized.includes('inex')) return 'inex one';
+    if (normalized.includes('reticula')) return 'reticula';
+    return normalized;
+  };
+
   // Get unique values for filters
   const filterOptions = useMemo(() => {
-    const projectTypes = Array.from(new Set(data.map(item => item['Project Type']))).filter(Boolean);
+    const canonicalTypes = ['All', 'Reticula', 'Inex One'];
+    const additionalTypesRaw = Array.from(new Set(data.map(item => item['Project Type']))).filter(Boolean) as string[];
+    const additionalTypes = additionalTypesRaw.filter((t) => {
+      const n = normalizeProjectType(t);
+      return n !== 'reticula' && n !== 'inex one';
+    });
+    const projectTypes = [...canonicalTypes, ...Array.from(new Set(additionalTypes))];
     const projectManagers = Array.from(new Set(data.map(item => item['Project Manager']))).filter(Boolean);
     const geoscopes = Array.from(new Set(data.map(item => item['Project Geoscope']))).filter(Boolean);
     const industries = Array.from(new Set(data.map(item => item['Project Industry']))).filter(Boolean);
@@ -38,7 +52,11 @@ const Dashboard: React.FC<DashboardProps> = ({ data }) => {
 
     // Build client names from data constrained by current filters (excluding clientName to avoid circular dep)
     const dataForClientNames = data.filter(item => {
-      if (filters.projectType && item['Project Type'] !== filters.projectType) return false;
+      if (filters.projectType && filters.projectType !== 'All') {
+        const itemType = normalizeProjectType(item['Project Type'] || '');
+        const selectedType = normalizeProjectType(filters.projectType);
+        if (itemType !== selectedType) return false;
+      }
       if (filters.projectManager && item['Project Manager'] !== filters.projectManager) return false;
       if (filters.geoscope && item['Project Geoscope'] !== filters.geoscope) return false;
       if (filters.industry && item['Project Industry'] !== filters.industry) return false;
@@ -69,7 +87,11 @@ const Dashboard: React.FC<DashboardProps> = ({ data }) => {
   // Filter data based on selected filters
   const filteredData = useMemo(() => {
     return data.filter(item => {
-      if (filters.projectType && item['Project Type'] !== filters.projectType) return false;
+      if (filters.projectType && filters.projectType !== 'All') {
+        const itemType = normalizeProjectType(item['Project Type'] || '');
+        const selectedType = normalizeProjectType(filters.projectType);
+        if (itemType !== selectedType) return false;
+      }
       if (filters.projectManager && item['Project Manager'] !== filters.projectManager) return false;
       if (filters.clientName && item['Client Name'] !== filters.clientName) return false;
       if (filters.geoscope && item['Project Geoscope'] !== filters.geoscope) return false;
@@ -118,7 +140,11 @@ const Dashboard: React.FC<DashboardProps> = ({ data }) => {
 
   const handleComparisonComplete = (firstCondition: any, secondCondition: any) => {
     const firstData = data.filter(item => {
-      if (firstCondition.projectType && item['Project Type'] !== firstCondition.projectType) return false;
+      if (firstCondition.projectType && firstCondition.projectType !== 'All') {
+        const itemType = normalizeProjectType(item['Project Type'] || '');
+        const selectedType = normalizeProjectType(firstCondition.projectType);
+        if (itemType !== selectedType) return false;
+      }
       if (firstCondition.projectManager && item['Project Manager'] !== firstCondition.projectManager) return false;
       if (firstCondition.clientName && item['Client Name'] !== firstCondition.clientName) return false;
       if (firstCondition.geoscope && item['Project Geoscope'] !== firstCondition.geoscope) return false;
@@ -137,7 +163,11 @@ const Dashboard: React.FC<DashboardProps> = ({ data }) => {
     });
 
     const secondData = data.filter(item => {
-      if (secondCondition.projectType && item['Project Type'] !== secondCondition.projectType) return false;
+      if (secondCondition.projectType && secondCondition.projectType !== 'All') {
+        const itemType = normalizeProjectType(item['Project Type'] || '');
+        const selectedType = normalizeProjectType(secondCondition.projectType);
+        if (itemType !== selectedType) return false;
+      }
       if (secondCondition.projectManager && item['Project Manager'] !== secondCondition.projectManager) return false;
       if (secondCondition.clientName && item['Client Name'] !== secondCondition.clientName) return false;
       if (secondCondition.geoscope && item['Project Geoscope'] !== secondCondition.geoscope) return false;
