@@ -30,12 +30,29 @@ const Dashboard: React.FC<DashboardProps> = ({ data }) => {
   const filterOptions = useMemo(() => {
     const projectTypes = Array.from(new Set(data.map(item => item['Project Type']))).filter(Boolean);
     const projectManagers = Array.from(new Set(data.map(item => item['Project Manager']))).filter(Boolean);
-    const clientNames = Array.from(new Set(data.map(item => item['Client Name']))).filter(Boolean);
     const geoscopes = Array.from(new Set(data.map(item => item['Project Geoscope']))).filter(Boolean);
     const industries = Array.from(new Set(data.map(item => item['Project Industry']))).filter(Boolean);
     const eventTypes = Array.from(new Set(data.map(item => item['Event Type']))).filter(Boolean);
     const eventExecutorAssociates = Array.from(new Set(data.map(item => item['Event Executor Associate']))).filter(Boolean);
     const expertFinalTermsStates = Array.from(new Set(data.map(item => item['Expert Final Terms State']))).filter(Boolean);
+
+    // Build client names from data constrained by current filters (excluding clientName to avoid circular dep)
+    const dataForClientNames = data.filter(item => {
+      if (filters.projectType && item['Project Type'] !== filters.projectType) return false;
+      if (filters.projectManager && item['Project Manager'] !== filters.projectManager) return false;
+      if (filters.geoscope && item['Project Geoscope'] !== filters.geoscope) return false;
+      if (filters.industry && item['Project Industry'] !== filters.industry) return false;
+      if (filters.eventType && item['Event Type'] !== filters.eventType) return false;
+      if (filters.eventExecutorAssociate && item['Event Executor Associate'] !== filters.eventExecutorAssociate) return false;
+      if (filters.expertFinalTermsState && item['Expert Final Terms State'] !== filters.expertFinalTermsState) return false;
+      if (filters.dateRange.start || filters.dateRange.end) {
+        const itemDate = new Date(item['Project Start Date']);
+        if (filters.dateRange.start && itemDate < new Date(filters.dateRange.start)) return false;
+        if (filters.dateRange.end && itemDate > new Date(filters.dateRange.end)) return false;
+      }
+      return true;
+    });
+    const clientNames = Array.from(new Set(dataForClientNames.map(item => item['Client Name']))).filter(Boolean);
 
     return {
       projectTypes,
@@ -47,7 +64,7 @@ const Dashboard: React.FC<DashboardProps> = ({ data }) => {
       eventExecutorAssociates,
       expertFinalTermsStates
     };
-  }, [data]);
+  }, [data, filters]);
 
   // Filter data based on selected filters
   const filteredData = useMemo(() => {
