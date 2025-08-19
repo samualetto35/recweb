@@ -15,6 +15,7 @@ interface DashboardProps {
 
 const Dashboard: React.FC<DashboardProps> = ({ data }) => {
   const [filters, setFilters] = useState({
+    projectType: '',
     projectManager: '',
     clientName: '',
     geoscope: '',
@@ -27,6 +28,7 @@ const Dashboard: React.FC<DashboardProps> = ({ data }) => {
 
   // Get unique values for filters
   const filterOptions = useMemo(() => {
+    const projectTypes = Array.from(new Set(data.map(item => item['Project Type']))).filter(Boolean);
     const projectManagers = Array.from(new Set(data.map(item => item['Project Manager']))).filter(Boolean);
     const clientNames = Array.from(new Set(data.map(item => item['Client Name']))).filter(Boolean);
     const geoscopes = Array.from(new Set(data.map(item => item['Project Geoscope']))).filter(Boolean);
@@ -36,6 +38,7 @@ const Dashboard: React.FC<DashboardProps> = ({ data }) => {
     const expertFinalTermsStates = Array.from(new Set(data.map(item => item['Expert Final Terms State']))).filter(Boolean);
 
     return {
+      projectTypes,
       projectManagers,
       clientNames,
       geoscopes,
@@ -49,6 +52,7 @@ const Dashboard: React.FC<DashboardProps> = ({ data }) => {
   // Filter data based on selected filters
   const filteredData = useMemo(() => {
     return data.filter(item => {
+      if (filters.projectType && item['Project Type'] !== filters.projectType) return false;
       if (filters.projectManager && item['Project Manager'] !== filters.projectManager) return false;
       if (filters.clientName && item['Client Name'] !== filters.clientName) return false;
       if (filters.geoscope && item['Project Geoscope'] !== filters.geoscope) return false;
@@ -97,12 +101,14 @@ const Dashboard: React.FC<DashboardProps> = ({ data }) => {
 
   const handleComparisonComplete = (firstCondition: any, secondCondition: any) => {
     const firstData = data.filter(item => {
+      if (firstCondition.projectType && item['Project Type'] !== firstCondition.projectType) return false;
       if (firstCondition.projectManager && item['Project Manager'] !== firstCondition.projectManager) return false;
       if (firstCondition.clientName && item['Client Name'] !== firstCondition.clientName) return false;
       if (firstCondition.geoscope && item['Project Geoscope'] !== firstCondition.geoscope) return false;
       if (firstCondition.industry && item['Project Industry'] !== firstCondition.industry) return false;
       if (firstCondition.eventType && item['Event Type'] !== firstCondition.eventType) return false;
       if (firstCondition.eventExecutorAssociate && item['Event Executor Associate'] !== firstCondition.eventExecutorAssociate) return false;
+      if (firstCondition.expertFinalTermsState && item['Expert Final Terms State'] !== firstCondition.expertFinalTermsState) return false;
       
       if (firstCondition.dateRange.start || firstCondition.dateRange.end) {
         const itemDate = new Date(item['Project Start Date']);
@@ -114,12 +120,14 @@ const Dashboard: React.FC<DashboardProps> = ({ data }) => {
     });
 
     const secondData = data.filter(item => {
+      if (secondCondition.projectType && item['Project Type'] !== secondCondition.projectType) return false;
       if (secondCondition.projectManager && item['Project Manager'] !== secondCondition.projectManager) return false;
       if (secondCondition.clientName && item['Client Name'] !== secondCondition.clientName) return false;
       if (secondCondition.geoscope && item['Project Geoscope'] !== secondCondition.geoscope) return false;
       if (secondCondition.industry && item['Project Industry'] !== secondCondition.industry) return false;
       if (secondCondition.eventType && item['Event Type'] !== secondCondition.eventType) return false;
       if (secondCondition.eventExecutorAssociate && item['Event Executor Associate'] !== secondCondition.eventExecutorAssociate) return false;
+      if (secondCondition.expertFinalTermsState && item['Expert Final Terms State'] !== secondCondition.expertFinalTermsState) return false;
       
       if (secondCondition.dateRange.start || secondCondition.dateRange.end) {
         const itemDate = new Date(item['Project Start Date']);

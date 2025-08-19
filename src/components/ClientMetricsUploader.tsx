@@ -47,7 +47,6 @@ const ClientMetricsUploader: React.FC<ClientMetricsUploaderProps> = ({ onDataLoa
         // Process the data to calculate Rate column
         const processedData: ClientMetricsData[] = data.map(row => {
           const reticulaCompleted = parseInt(row['Reticula Completed Calls'] || '0');
-          const inexOneExpected = parseInt(row['Inex One Expected Calls'] || '0');
           const inexOneCompleted = parseInt(row['Inex One Completed Calls'] || '0');
           
           // Calculate rate: 100/(Column D / Column B) where D is Inex One Completed Calls and B is Reticula Completed Calls
@@ -72,7 +71,7 @@ const ClientMetricsUploader: React.FC<ClientMetricsUploaderProps> = ({ onDataLoa
         setError('Error reading file. Please try again.');
       }
     });
-  }, [onDataLoaded]);
+  }, [onDataLoaded, requiredColumns]);
 
   const handleFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];

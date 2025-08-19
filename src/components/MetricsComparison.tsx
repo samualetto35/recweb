@@ -8,17 +8,7 @@ interface MetricsComparisonProps {
   onBack: () => void;
 }
 
-interface ManagerMetrics {
-  name: string;
-  totalProjects: number;
-  uniqueClients: number;
-  uniqueExperts: number;
-  completedProjects: number;
-  completedRate: string;
-  followupDistribution: Record<string, number>;
-  eventTypeDistribution: Record<string, number>;
-  geoscopeDistribution: Record<string, number>;
-}
+// Using inline types via map return; keep interface removed to avoid unused symbol warnings
 
 interface SortOption {
   field: string;

@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 
 interface FiltersProps {
   filters: {
+    projectType: string;
     projectManager: string;
     clientName: string;
     geoscope: string;
@@ -12,6 +13,7 @@ interface FiltersProps {
     dateRange: { start: string; end: string };
   };
   filterOptions: {
+    projectTypes: string[];
     projectManagers: string[];
     clientNames: string[];
     geoscopes: string[];
@@ -31,6 +33,7 @@ const Filters: React.FC<FiltersProps> = ({ filters, filterOptions, onFilterChang
   const [showComparePopup, setShowComparePopup] = useState(false);
   const [compareStep, setCompareStep] = useState(1);
   const [firstCondition, setFirstCondition] = useState({
+    projectType: '',
     projectManager: '',
     clientName: '',
     geoscope: '',
@@ -41,6 +44,7 @@ const Filters: React.FC<FiltersProps> = ({ filters, filterOptions, onFilterChang
     dateRange: { start: '', end: '' }
   });
   const [secondCondition, setSecondCondition] = useState({
+    projectType: '',
     projectManager: '',
     clientName: '',
     geoscope: '',
@@ -63,7 +67,6 @@ const Filters: React.FC<FiltersProps> = ({ filters, filterOptions, onFilterChang
   const handleSecondConditionSave = () => {
     setShowComparePopup(false);
     setCompareStep(1);
-    // Trigger the comparison with both conditions
     if (onComparisonComplete) {
       onComparisonComplete(firstCondition, secondCondition);
     }
@@ -71,21 +74,31 @@ const Filters: React.FC<FiltersProps> = ({ filters, filterOptions, onFilterChang
 
   const handleConditionChange = (step: number, filterType: string, value: string | { start: string; end: string }) => {
     if (step === 1) {
-      setFirstCondition(prev => ({
-        ...prev,
-        [filterType]: value
-      }));
+      setFirstCondition(prev => ({ ...prev, [filterType]: value }));
     } else {
-      setSecondCondition(prev => ({
-        ...prev,
-        [filterType]: value
-      }));
+      setSecondCondition(prev => ({ ...prev, [filterType]: value }));
     }
   };
 
   return (
     <div className="filters">
       <div className="filters-row">
+        <div className="filter-group">
+          <label htmlFor="projectType">Project Type</label>
+          <select
+            id="projectType"
+            value={filters.projectType}
+            onChange={(e) => onFilterChange('projectType', e.target.value)}
+          >
+            <option value="">All Types</option>
+            {filterOptions.projectTypes.map((type) => (
+              <option key={type} value={type}>
+                {type}
+              </option>
+            ))}
+          </select>
+        </div>
+
         <div className="filter-group">
           <label htmlFor="projectManager">Project Manager</label>
           <select
@@ -268,6 +281,21 @@ const Filters: React.FC<FiltersProps> = ({ filters, filterOptions, onFilterChang
               <h4>{compareStep === 1 ? 'First Condition' : 'Second Condition'}</h4>
               
               <div className="popup-filters">
+                <div className="filter-group">
+                  <label>Project Type</label>
+                  <select
+                    value={compareStep === 1 ? firstCondition.projectType : secondCondition.projectType}
+                    onChange={(e) => handleConditionChange(compareStep, 'projectType', e.target.value)}
+                  >
+                    <option value="">All Types</option>
+                    {filterOptions.projectTypes.map((type) => (
+                      <option key={type} value={type}>
+                        {type}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
                 <div className="filter-group">
                   <label>Project Manager</label>
                   <select
